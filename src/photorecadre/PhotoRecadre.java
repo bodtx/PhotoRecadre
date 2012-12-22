@@ -6,15 +6,25 @@
 package photorecadre;
 
 import com.sun.deploy.uitoolkit.DragContext;
+import com.sun.javafx.geom.transform.Affine3D;
+import java.awt.Transparency;
 import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.Cursor;
+import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.transform.Scale;
+import javafx.scene.transform.Transform;
+import javafx.scene.transform.Translate;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 /**
@@ -22,12 +32,22 @@ import javafx.stage.Stage;
  * @author bod
  */
 public class PhotoRecadre extends Application {
-double dragBaseX,dragBaseY,dragBase2X,dragBase2Y;
 
-    
+    double dragBaseX, dragBaseY, dragBase2X, dragBase2Y;
+
     @Override
     public void start(Stage primaryStage) {
+        primaryStage.setTitle("Hello World");
+        Group root = new Group();
+        Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+        final Scene scene = new Scene(root, screenBounds.getWidth(), screenBounds.getHeight());
         Button btn = new Button();
+        root.getChildren().add(btn);
+
+        primaryStage.setScene(scene);
+        primaryStage.show();
+
+
         btn.setText("Say 'Hello World'");
         btn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -35,31 +55,54 @@ double dragBaseX,dragBaseY,dragBase2X,dragBase2Y;
                 System.out.println("Hello World!");
             }
         });
+        final Rectangle rectMain = new Rectangle();
+        final Rectangle rectUpLeft = new Rectangle();
+        final Rectangle rectUpRight = new Rectangle();
+        final Rectangle rectDownRight = new Rectangle();
+        final Rectangle rectDownLeft = new Rectangle();
+        rectMain.setX(50);
+        rectMain.setY(50);
+        rectMain.setWidth(200);
+        rectMain.setHeight(100);
+        rectMain.setFill(null);
+        rectMain.setStroke(Color.BLUE);
+        root.getChildren().add(rectMain);
 
-        final Circle circle = new Circle(50.0, Color.RED);
+        rectUpLeft.setX(50);
+        rectUpLeft.setY(50);
+        rectUpLeft.setWidth(10);
+        rectUpLeft.setHeight(10);
+        rectUpLeft.setStroke(Color.BLUE);
+        root.getChildren().add(rectUpLeft);
 
-         circle.setOnMousePressed(new EventHandler<MouseEvent>() {
+        rectUpLeft.setOnMousePressed(new EventHandler<MouseEvent>() {
+            public void handle(MouseEvent event) {
+//                scene.setCursor(Cursor.CLOSED_HAND);
+                dragBaseX = rectUpLeft.translateXProperty().get();
 
-public void handle(MouseEvent event) {
-    
-  dragBaseX = circle.translateXProperty().get();
+                dragBaseY = rectUpLeft.translateYProperty().get();
 
-dragBaseY = circle.translateYProperty().get();
+                dragBase2X = event.getSceneX();
 
-dragBase2X = event.getSceneX();
-
-dragBase2Y = event.getSceneY();
-}
-});
-        
-        circle.setOnMouseDragged(new EventHandler<MouseEvent>() {
-            
-            public void handle(MouseEvent me) {
-                
-                 circle.setTranslateX(dragBaseX + (me.getSceneX()-dragBase2X));
-
-                circle.setTranslateY(dragBaseY + (me.getSceneY()-dragBase2Y));
+                dragBase2Y = event.getSceneY();
             }
+        });
+
+        rectUpLeft.setOnMouseDragged(new EventHandler<MouseEvent>() {
+            public void handle(MouseEvent me) {
+
+                rectUpLeft.setTranslateX(dragBaseX + (me.getSceneX() - dragBase2X));
+
+                rectUpLeft.setTranslateY(dragBaseY + (me.getSceneY() - dragBase2Y));
+                   double rectMainoldX = rectMain.getX();
+                   double rectMainoldY = rectMain.getY();
+                rectMain.setX(rectUpLeft.getX());
+                rectMain.setY(rectUpLeft.getY());
+                rectMain.setWidth(200 - (rectMainoldX - rectMain.getX()));
+                rectMain.setHeight(100 - (rectMainoldY - rectMain.getY()));
+                rectMain.resize(100, 100);
+                rectMain.getTransforms().add(new Scale(10, 10)); 
+           }
         });
 
 //        circle.setOnMousePressed(new EventHandler<MouseEvent>() {
@@ -67,37 +110,10 @@ dragBase2Y = event.getSceneY();
 //                System.out.println("Mouse pressed");
 //            }
 //        });
-        StackPane root = new StackPane();
-        //Scene s = new Scene(root, 300, 300, Color.AZURE);
-        
-        root.getChildren().add(btn);
-        root.getChildren().add(circle);
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        Scene scene = new Scene(root, 300, 250);
-
-        primaryStage.setTitle("Hello World!");
-        primaryStage.setScene(scene);
-        primaryStage.show();
     }
 
     /**
@@ -112,4 +128,3 @@ dragBase2Y = event.getSceneY();
         launch(args);
     }
 }
-
