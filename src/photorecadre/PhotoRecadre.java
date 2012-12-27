@@ -43,9 +43,23 @@ public class PhotoRecadre extends Application {
 
     double dragBaseULX, dragBaseULY, dragBase2ULX, dragBase2ULY;
     double dragBaseDRX, dragBaseDRY, dragBase2DRX, dragBase2DRY;
-    double dragBaseURX, dragBaseURY, dragBase2URX, dragBase2URY;
+    double dragBaseCX, dragBaseCY, dragBase2CX, dragBase2CY;
     double dragBaseDLX, dragBaseDLY, dragBase2DLX, dragBase2DLY;
-    double oldRectMainHeight, oldRectMainWidth;
+    private double oldRectMainH;
+    private double oldRectMainW;
+    private double oldRectMainTX;
+    private double oldRectMainTY;
+    private double rectCenterMinX;
+    private double rectCenterMinY;
+    private double rectMainMaxX;
+    private double rectMainMaxY;
+    private double rectMainMinX;
+    private double rectMainMinY;
+            private double rectULMinX;
+            private double rectULMinY;
+            private double startULY;
+            private double startULX;
+    private Logger logger = Logger.getLogger(PhotoRecadre.class.getName());
 
     @Override
     public void start(Stage primaryStage) {
@@ -85,14 +99,10 @@ public class PhotoRecadre extends Application {
 
         final Rectangle rectMain = new Rectangle();
         final Rectangle rectUpLeft = new Rectangle();
-        final Rectangle rectUpRight = new Rectangle();
-        final Rectangle rectDownRight = new Rectangle();
-        final Rectangle rectDownLeft = new Rectangle();
-//        rectMain.setX(50);
-//        rectMain.setY(50);
-//        final double ratioOldPicture = (11.0/15.0);
+        final Rectangle rectCenter = new Rectangle();
+        final double ratioOldPicture = (11.0 / 15.0);
         rectMain.setWidth(workingImage.getWidth());
-        rectMain.setHeight(workingImage.getHeight() );
+        rectMain.setHeight(workingImage.getHeight() * ratioOldPicture);
         rectMain.setFill(null);
         rectMain.setStroke(Color.BLUE);
         root.getChildren().add(rectMain);
@@ -104,35 +114,32 @@ public class PhotoRecadre extends Application {
         rectUpLeft.setStroke(Color.BLUE);
         root.getChildren().add(rectUpLeft);
 
-        rectDownRight.setX(rectMain.getWidth() - 10);
-        rectDownRight.setY(rectMain.getHeight() - 10);
-        rectDownRight.setWidth(10);
-        rectDownRight.setHeight(10);
-        rectDownRight.setStroke(Color.BLUE);
-        root.getChildren().add(rectDownRight);
 
-        rectUpRight.setX(rectMain.getWidth() - 10);
-//        rectUpRight.setY(50);
-        rectUpRight.setWidth(10);
-        rectUpRight.setHeight(10);
-        rectUpRight.setStroke(Color.BLUE);
-        root.getChildren().add(rectUpRight);
+        rectCenter.setX(rectMain.getWidth() / 2.0 - 10);
+        rectCenter.setY(rectMain.getHeight() / 2.0);
+        rectCenterMinX = rectCenter.getX();
+        rectCenterMinY = rectCenter.getY();
+        rectMainMinX = rectMain.getX();
+        rectMainMinY = rectMain.getY();
+        rectMainMaxX = rectMain.getWidth();
+        rectMainMaxY = rectMain.getHeight();
+        
+        rectULMinX = rectUpLeft.getX();
+        rectULMinY = rectUpLeft.getY();
 
-//        rectDownLeft.setX(50);
-        rectDownLeft.setY(rectMain.getHeight() - 10);
-        rectDownLeft.setWidth(10);
-        rectDownLeft.setHeight(10);
-        rectDownLeft.setStroke(Color.BLUE);
-        root.getChildren().add(rectDownLeft);
+        rectCenter.setWidth(10);
+        rectCenter.setHeight(10);
+        rectCenter.setStroke(Color.BLUE);
+        root.getChildren().add(rectCenter);
 
         btn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                double ratioResize = image.getWidth()/resizedWidth;
-                final Rectangle2D viewportRect = new Rectangle2D(rectUpLeft.getTranslateX() * ratioResize,
-                        rectUpLeft.getTranslateY() * ratioResize,
-                        (workingImage.getWidth() - rectUpLeft.getTranslateX() + rectDownRight.getTranslateX()) * ratioResize,
-                        (workingImage.getHeight() - rectUpLeft.getTranslateY() + rectDownRight.getTranslateY()) * ratioResize);
+                double ratioResize = image.getWidth() / resizedWidth;
+                final Rectangle2D viewportRect = new Rectangle2D(rectUpLeft.getBoundsInParent().getMinX() * ratioResize,
+                        rectUpLeft.getBoundsInParent().getMinY() * ratioResize,
+                        (rectMain.getWidth()) * ratioResize,
+                        (rectMain.getHeight()) * ratioResize);
                 final ImageView saveImageView = new ImageView();
                 saveImageView.setImage(image);
                 saveImageView.setViewport(viewportRect);
@@ -143,140 +150,172 @@ public class PhotoRecadre extends Application {
                             "png",
                             new File("celestin.png"));
                 } catch (IOException ex) {
-                    Logger.getLogger(PhotoRecadre.class.getName()).log(Level.SEVERE, null, ex);
+                    logger.log(Level.SEVERE, null, ex);
                 }
             }
         });
 
+//
+//        rectUpLeft.setOnMousePressed(new EventHandler<MouseEvent>() {
+//            public void handle(MouseEvent event) {
+////                scene.setCursor(Cursor.CLOSED_HAND);
+//                dragBaseULX = rectUpLeft.translateXProperty().get();
+//                dragBaseULY = rectUpLeft.translateYProperty().get();
+//                dragBase2ULX = event.getSceneX();
+//                dragBase2ULY = event.getSceneY();
+//
+//                dragBaseCX = rectCenter.translateXProperty().get();
+//                dragBaseCY = rectCenter.translateYProperty().get();
+//                dragBase2CX = event.getSceneX();
+//                dragBase2CY = event.getSceneY();
+//
+//
+//                oldRectMainW = rectMain.getWidth();
+//                oldRectMainH = rectMain.getHeight();
+//                System.out.println("pressed: " + oldRectMainW + "/" + oldRectMainH);
+//            }
+//        });
+//        
+//
+//        rectUpLeft.setOnMouseDragged(new EventHandler<MouseEvent>() {
+//            public void handle(MouseEvent me) {
+//                rectUpLeft.setTranslateX(dragBaseULX + (me.getSceneX() - dragBase2ULX));
+//                rectUpLeft.setTranslateY(dragBaseULY + (me.getSceneY() - dragBase2ULY));
+//                rectMain.setTranslateX(rectUpLeft.getTranslateX());
+//                rectMain.setTranslateY(rectUpLeft.getTranslateY());
+//
+//                final double rectHeight = oldRectMainH + dragBaseULY - rectUpLeft.getTranslateY();
+//                rectMain.setHeight(rectHeight);
+//                final double rectWidth = oldRectMainW + dragBaseULX - rectUpLeft.getTranslateX();
+//                rectMain.setWidth(rectWidth);
+////                System.out.println("drag: " + oldRectMainW + "/" + oldRectMainH);
+////                rectCenter.relocate(rectMain.getX() + rectMain.getTranslateX() + rectWidth / 2.0, rectMain.getY() + rectMain.getTranslateY() + rectHeight / 2.0);
+////                rectCenter.setTranslateY(dragBaseCY + (me.getSceneY() - dragBase2ULY));
+//
+////                final Rectangle2D viewportRect = new Rectangle2D(rectUpLeft.getTranslateX(), rectUpLeft.getTranslateY(), rectWidth, rectHeight);
+////                imageView.setViewport(viewportRect);
+////                imageView.setTranslateX(rectMain.getX() + rectUpLeft.getTranslateX());
+////                imageView.setTranslateY(rectMain.getY() + rectUpLeft.getTranslateY());
+//
+//            }
+//        });
 
-        rectUpLeft.setOnMousePressed(new EventHandler<MouseEvent>() {
+        //EventListener for MousePressed
+        rectUpLeft.onMousePressedProperty().set(new EventHandler<MouseEvent>() {
+            @Override
             public void handle(MouseEvent event) {
-//                scene.setCursor(Cursor.CLOSED_HAND);
-                dragBaseULX = rectUpLeft.translateXProperty().get();
-                dragBaseULY = rectUpLeft.translateYProperty().get();
-                dragBase2ULX = event.getSceneX();
-                dragBase2ULY = event.getSceneY();
+                //record the current mouse X and Y position on Node
+                dragBaseULX = event.getSceneX();
+                dragBaseULY = event.getSceneY();
+                
+                startULX = event.getSceneX();
+                startULY = event.getSceneY();
+                //get the x and y position measure from Left-Top
+                dragBase2ULX = rectUpLeft.getLayoutX();
+                dragBase2ULY = rectUpLeft.getLayoutY();
+                oldRectMainW = rectMainMaxX - rectMainMinX;
+                oldRectMainH = rectMainMaxY - rectMainMinY;
+                
+                rectMainMinX = rectMain.getBoundsInParent().getMinX();
+                rectMainMinY = rectMain.getBoundsInParent().getMinY();
+                rectMainMaxX = rectMain.getBoundsInParent().getMaxX();
+                rectMainMaxY = rectMain.getBoundsInParent().getMaxY();
+
+
+
             }
         });
 
-        rectUpLeft.setOnMouseDragged(new EventHandler<MouseEvent>() {
-            public void handle(MouseEvent me) {
-                rectUpLeft.setTranslateX(dragBaseULX + (me.getSceneX() - dragBase2ULX));
-                rectUpLeft.setTranslateY(dragBaseULY + (me.getSceneY() - dragBase2ULY));
-                rectUpRight.setTranslateY(dragBaseULY + (me.getSceneY() - dragBase2ULY));
-                rectDownLeft.setTranslateX(dragBaseULX + (me.getSceneX() - dragBase2ULX));
-                rectMain.setTranslateX(rectUpLeft.getTranslateX());
-                rectMain.setTranslateY(rectUpLeft.getTranslateY());
+        //Event Listener for MouseDragged
+        rectUpLeft.onMouseDraggedProperty().set(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                //Get the exact moved X and Y
+                dragBase2ULX += event.getSceneX() - dragBaseULX;
 
-                final double rectHeight = workingImage.getHeight() - rectUpLeft.getTranslateY() + rectDownRight.getTranslateY();
+                dragBase2ULY += event.getSceneY() - dragBaseULY;
+
+                //set the positon of Node after calculation
+                rectUpLeft.setLayoutX(dragBase2ULX);
+                rectUpLeft.setLayoutY(dragBase2ULY);
+
+
+//                rectMain.setLayoutX(dragBase2ULX);
+//                rectMain.setLayoutY(dragBase2ULY);
+
+                final double rectHeight = rectMainMaxY - rectMainMinY - (event.getSceneY() - startULY);
                 rectMain.setHeight(rectHeight);
-                final double rectWidth = workingImage.getWidth() - rectUpLeft.getTranslateX() + rectDownRight.getTranslateX();
+                final double rectWidth = rectMainMaxX - rectMainMinX - (event.getSceneX() - startULX);
                 rectMain.setWidth(rectWidth);
 
+                logger.log(Level.INFO, event.getSceneX()+"/"+ startULX+"/"+rectUpLeft.getLayoutX() + "/" + dragBaseULX + "/" + dragBase2ULX + "/" + rectUpLeft.getTranslateX() +"/"+ rectUpLeft.getBoundsInParent().getMinX()+ "/"+rectUpLeft.getBoundsInParent().getMaxX());
+//                logger.log(Level.OFF, "X property " + (rectUpLeft.getLayoutX() + rectUpLeft.getTranslateX()));
+//                logger.log(Level.OFF, "X property main" + rectMain.getLayoutX() + "/" + rectMain.getTranslateX() + "/" + rectMain.getX() + "/" + rectMain.getBoundsInParent().getMinX() + "/" + rectMain.getBoundsInLocal().getMinX());
+                rectMain.setX(rectUpLeft.getBoundsInParent().getMinX() - rectMain.getTranslateX());
+                rectMain.setY(rectUpLeft.getBoundsInParent().getMinY() - rectMain.getTranslateY());
 
-                final Rectangle2D viewportRect = new Rectangle2D(rectUpLeft.getTranslateX(), rectUpLeft.getTranslateY(), rectWidth, rectHeight);
-                imageView.setViewport(viewportRect);
-                imageView.setTranslateX(rectMain.getX() + rectUpLeft.getTranslateX());
-                imageView.setTranslateY(rectMain.getY() + rectUpLeft.getTranslateY());
-                System.out.println(rectUpLeft.getTranslateX()+"/"+rectUpLeft.getTranslateY()+"/"+rectWidth+"/"+rectHeight);
+                //again set current Mouse x AND y position
+                dragBaseULX = event.getSceneX();
+                dragBaseULY = event.getSceneY();
+                rectCenter.setLayoutX(dragBase2ULX / 2.0);
+                rectCenter.setLayoutY(dragBase2ULY / 2.0);
 
             }
         });
+        
 
 
-
-        rectDownLeft.setOnMousePressed(new EventHandler<MouseEvent>() {
+        rectCenter.setOnMousePressed(new EventHandler<MouseEvent>() {
             public void handle(MouseEvent event) {
 //                scene.setCursor(Cursor.CLOSED_HAND);
-                dragBaseDLX = rectDownLeft.translateXProperty().get();
-                dragBaseDLY = rectDownLeft.translateYProperty().get();
-                dragBase2DLX = event.getSceneX();
-                dragBase2DLY = event.getSceneY();
+                dragBaseCX = rectCenter.translateXProperty().get();
+                dragBaseCY = rectCenter.translateYProperty().get();
+                dragBase2CX = event.getSceneX();
+                dragBase2CY = event.getSceneY();
+                oldRectMainTX = rectMain.getTranslateX();
+                oldRectMainTY = rectMain.getTranslateY();
+
+
             }
         });
 
-        rectDownLeft.setOnMouseDragged(new EventHandler<MouseEvent>() {
+        rectCenter.setOnMouseDragged(new EventHandler<MouseEvent>() {
             public void handle(MouseEvent me) {
-                rectDownLeft.setTranslateX(dragBaseDLX + (me.getSceneX() - dragBase2DLX));
-                rectDownLeft.setTranslateY(dragBaseDLY + (me.getSceneY() - dragBase2DLY));
-                rectUpLeft.setTranslateX(dragBaseDLX + (me.getSceneX() - dragBase2DLX));
-                rectDownRight.setTranslateY(dragBaseDLY + (me.getSceneY() - dragBase2DLY));
-                final double rectHeight = workingImage.getHeight() + rectDownLeft.getTranslateY() - rectUpLeft.getTranslateY();
-                rectMain.setHeight(rectHeight);
-                final double rectWidth = workingImage.getWidth() - rectDownLeft.getTranslateX() + rectDownRight.getTranslateX();
-                rectMain.setWidth(rectWidth);
-                rectMain.setTranslateX(rectDownLeft.getTranslateX());
-
-                final Rectangle2D viewportRect = new Rectangle2D(rectUpLeft.getTranslateX(), rectUpLeft.getTranslateY(), rectWidth, rectHeight);
-                imageView.setViewport(viewportRect);
-                imageView.setTranslateX(rectMain.getX() + rectDownLeft.getTranslateX());
-                System.out.println(rectUpLeft.getTranslateX()+"/"+rectUpLeft.getTranslateY()+"/"+rectWidth+"/"+rectHeight);
-            }
-        });
+                rectCenter.setTranslateX(dragBaseCX + (me.getSceneX() - dragBase2CX));
+                rectCenter.setTranslateY(dragBaseCY + (me.getSceneY() - dragBase2CY));
+                rectCenterMinX = rectCenter.getBoundsInParent().getMinX();
+                rectCenterMinY = rectCenter.getBoundsInParent().getMinY();
 
 
 
 
+                rectUpLeft.setTranslateY(dragBaseCY + (me.getSceneY() - dragBase2CY));
+                rectUpLeft.setTranslateX(dragBaseCX + (me.getSceneX() - dragBase2CX));
+                rectULMinX = rectUpLeft.getBoundsInParent().getMinX();
+                rectULMinY = rectUpLeft.getBoundsInParent().getMinY();
+logger.log(Level.OFF, "X property rectUL" + rectULMinX + "/" + rectULMinY);
+
+
+                rectMain.setTranslateX(dragBaseCX + (me.getSceneX() - dragBase2CX));
+                rectMain.setTranslateY(dragBaseCY + (me.getSceneY() - dragBase2CY));
+                rectMainMinX = rectMain.getBoundsInParent().getMinX();
+                rectMainMinY = rectMain.getBoundsInParent().getMinY();
+                rectMainMaxX = rectMain.getBoundsInParent().getMaxX();
+                rectMainMaxY = rectMain.getBoundsInParent().getMaxY();
+
+                logger.log(Level.OFF, "X property " + rectCenter.getLayoutX() + "/" + rectCenter.getTranslateX() + "/" + rectCenter.getX() + "/" + rectCenter.getBoundsInParent().getMinX() + "/" + rectCenter.getBoundsInLocal().getMinX());
+                logger.log(Level.OFF, "X property rectmain" + rectMain.getBoundsInParent().getMinX() + "/" + rectMain.getBoundsInParent().getMaxX());
 
 
 
 
 
-
-        rectDownRight.setOnMousePressed(new EventHandler<MouseEvent>() {
-            public void handle(MouseEvent event) {
-//                scene.setCursor(Cursor.CLOSED_HAND);
-                dragBaseDRX = rectDownRight.translateXProperty().get();
-                dragBaseDRY = rectDownRight.translateYProperty().get();
-                dragBase2DRX = event.getSceneX();
-                dragBase2DRY = event.getSceneY();
-            }
-        });
-
-        rectDownRight.setOnMouseDragged(new EventHandler<MouseEvent>() {
-            public void handle(MouseEvent me) {
-                rectDownRight.setTranslateX(dragBaseDRX + (me.getSceneX() - dragBase2DRX));
-                rectDownRight.setTranslateY(dragBaseDRY + (me.getSceneY() - dragBase2DRY));
-                rectUpRight.setTranslateX(dragBaseDRX + (me.getSceneX() - dragBase2DRX));
-                rectDownLeft.setTranslateY(dragBaseDRY + (me.getSceneY() - dragBase2DRY));
-                final double rectIViewHeigth = workingImage.getHeight() + rectDownRight.getTranslateY() - rectUpLeft.getTranslateY();
-                final double rectIViewWidth = workingImage.getWidth() + rectDownRight.getTranslateX() - rectUpLeft.getTranslateX();
-                rectMain.setHeight(rectIViewHeigth);
-                rectMain.setWidth(rectIViewWidth);
-
-                final Rectangle2D viewportRect = new Rectangle2D(rectUpLeft.getTranslateX(), rectUpLeft.getTranslateY(), rectIViewWidth, rectIViewHeigth);
-                imageView.setViewport(viewportRect);
-                imageView.setTranslateX(rectMain.getX() + rectUpLeft.getTranslateX());
-                imageView.setTranslateY(rectMain.getY() + rectUpLeft.getTranslateY());
-            }
-        });
-
-        rectUpRight.setOnMousePressed(new EventHandler<MouseEvent>() {
-            public void handle(MouseEvent event) {
-//                scene.setCursor(Cursor.CLOSED_HAND);
-                dragBaseURX = rectUpRight.translateXProperty().get();
-                dragBaseURY = rectUpRight.translateYProperty().get();
-                dragBase2URX = event.getSceneX();
-                dragBase2URY = event.getSceneY();
-            }
-        });
-
-        rectUpRight.setOnMouseDragged(new EventHandler<MouseEvent>() {
-            public void handle(MouseEvent me) {
-                rectUpRight.setTranslateX(dragBaseURX + (me.getSceneX() - dragBase2URX));
-                rectUpRight.setTranslateY(dragBaseURY + (me.getSceneY() - dragBase2URY));
-                rectUpLeft.setTranslateY(dragBaseURY + (me.getSceneY() - dragBase2URY));
-                rectDownRight.setTranslateX(dragBaseURX + (me.getSceneX() - dragBase2URX));
-                rectMain.setTranslateY(rectUpRight.getTranslateY());
-                rectMain.setHeight(workingImage.getHeight() - rectUpRight.getTranslateY() + rectDownRight.getTranslateY());
-                final double rectWidth = workingImage.getWidth() + rectUpRight.getTranslateX() - rectUpLeft.getTranslateX();
-//                rectMain.setHeight(rectWidth*ratioOldPicture);
-                rectMain.setWidth(rectWidth);
-
-                final Rectangle2D viewportRect = new Rectangle2D(rectUpLeft.getTranslateX(), rectUpLeft.getTranslateY(), workingImage.getWidth() + rectUpRight.getTranslateX() - rectUpLeft.getTranslateX(), workingImage.getHeight() - rectUpRight.getTranslateY() + rectDownRight.getTranslateY());
-                imageView.setViewport(viewportRect);
-                imageView.setTranslateX(rectMain.getX() + rectUpLeft.getTranslateX());
-                imageView.setTranslateY(rectMain.getY() + rectUpLeft.getTranslateY());
+//                final double rectHeight = workingImage.getHeight() - rectUpLeft.getTranslateY() ;
+//                final double rectWidth = workingImage.getWidth() - rectUpLeft.getTranslateX() ;
+//                final Rectangle2D viewportRect = new Rectangle2D(rectUpLeft.getTranslateX(), rectUpLeft.getTranslateY(), rectWidth, rectHeight);
+//                imageView.setViewport(viewportRect);
+//                imageView.setTranslateX(rectMain.getX() + rectUpLeft.getTranslateX());
+//                imageView.setTranslateY(rectMain.getY() + rectUpLeft.getTranslateY());
             }
         });
 
