@@ -5,10 +5,17 @@
  */
 package photorecadre;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,7 +43,11 @@ import javafx.scene.transform.Rotate;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
 
 /**
  *
@@ -47,7 +58,7 @@ public class PhotoRecadre extends Application {
     double dragBaseCX, dragBaseCY, dragBase2CX, dragBase2CY;
     private Logger logger = Logger.getLogger(PhotoRecadre.class.getName());
     final int resizedWidth = 400;
-    Image image = new Image(getClass().getClassLoader().getResourceAsStream("resources/P1050143.JPG"));
+    Image image = new Image(getClass().getClassLoader().getResourceAsStream("resources/ernest_et_celestine.jpg"));
     double ratioResize;
     Rectangle rectMain = new Rectangle();
     final Rectangle rectCenter = new Rectangle();
@@ -75,8 +86,8 @@ public class PhotoRecadre extends Application {
         btn.setText("Save cropped image");
         rectMain.setX(0);
         rectMain.setY(0);
-        rectMain.setWidth(Math.round(image.getWidth()*100)/100 -2 );
-        rectMain.setHeight(Math.round((image.getWidth()-1)* ratioOldPicture *100)/100-1);
+        rectMain.setWidth(Math.round(image.getWidth() * 100) / 100 - 2);
+        rectMain.setHeight(Math.round((image.getWidth() - 1) * ratioOldPicture * 100) / 100 - 1);
         rectMain.setFill(null);
         rectMain.setStroke(Color.GREEN);
         rectCenter.setY(rectMain.getHeight() / 2.0);
@@ -126,7 +137,7 @@ public class PhotoRecadre extends Application {
                 List<File> showOpenMultipleDialog = fChooser.showOpenMultipleDialog(null);
                 imageMap.clear();
                 for (File file : showOpenMultipleDialog) {
-                    final String imagePath = "file://" + file.getAbsolutePath();
+                    final String imagePath = file.toURI().toString();
                     list.getItems().add(imagePath);
                     imageMap.put(imagePath, new Image(imagePath, 200, 0, true, false, true));
                 }
@@ -153,100 +164,115 @@ public class PhotoRecadre extends Application {
                 saveImageView.setImage(sourceImageView.getImage());
                 saveImageView.setViewport(viewportRect);
                 logger.log(Level.INFO, "iViewCoord {0}/{1}", new Object[]{imageView.getBoundsInParent().getMinX(), imageView.getBoundsInParent().getMinY()});
-                final String filePath = list.getSelectionModel().getSelectedItem().substring(7);
+                final String filePath = list.getSelectionModel().getSelectedItem();
                 try {
-                    File imageToDelete = new File(filePath);
+                    File imageToDelete = new File(new URI(filePath));
                     imageToDelete.delete();
                     final WritableImage snapshot = saveImageView.snapshot(null, null);
+                    final BufferedImage croppedARGBImage = SwingFXUtils.fromFXImage(
+                                                      snapshot, null);
 
-                    ImageIO.write(
-                            SwingFXUtils.fromFXImage(
-                            snapshot, null),
-                            "png",
-                            new File(filePath + ".png"));
-//                    JPEGHandler.saveAsJPEG(null, SwingFXUtils.fromFXImage(
-//                            saveImageView.snapshot(null, null), null), new Float("1.0"), new FileOutputStream(new File(filePath+"toto.jpeg")));
-                    imageMap.remove("file://" + filePath);
-                    final String newPNGFile = "file://" + filePath + ".png";
-                    imageMap.put(newPNGFile, new Image(newPNGFile, 200, 0, true, false, false));
-                    items.set(list.getSelectionModel().getSelectedIndex(), newPNGFile);
-                    showImage(newPNGFile);
+                    BufferedImage imageRGB = new BufferedImage((int)viewportRect.getWidth(), (int)viewportRect.getHeight(), BufferedImage.TYPE_INT_RGB);
+                    Graphics2D g = imageRGB.createGraphics();
+                    //Color.WHITE set the background to white. You can use any other color
+                    g.drawImage(croppedARGBImage, 0, 0, imageRGB.getWidth(), imageRGB.getHeight(), java.awt.Color.WHITE, null);
+                    
+                    Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
+                    ImageWriter writer = (ImageWriter) writers.next();
+                    ImageWriteParam param = writer.getDefaultWriteParam();
+                    ImageOutputStream ios;
+                    try (OutputStream os = new FileOutputStream(new File(new URI(filePath + ".jpg")))) {
+                        ios = ImageIO.createImageOutputStream(os);
+                        writer.setOutput(ios);
+                        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                        param.setCompressionQuality(1.0f);
+                        writer.write(null, new IIOImage(imageRGB, null, null), param);
+                    }
+                    
+                    imageMap.remove(filePath);
+                    final String newPicFile = filePath + ".jpg";
+                    imageMap.put(newPicFile, new Image(newPicFile, 200, 0, true, false, false));
+                    items.set(list.getSelectionModel().getSelectedIndex(), newPicFile);
+                    showImage(newPicFile);
                 } catch (IOException ex) {
                     logger.log(Level.SEVERE, null, ex);
+                } catch (URISyntaxException ex) {
+                    Logger.getLogger(PhotoRecadre.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         });
 
-        stackPane.setOnScroll(new EventHandler<ScrollEvent>() {
-            @Override
-            public void handle(ScrollEvent t) {
-                final int step = 10;
-                //TODO prevent scroll if scroll + step > imageview otherwise it will be over
-                if (!(rectMain.getBoundsInParent().getMaxY() > imageView.getBoundsInParent().getMaxY())
-                        && !(rectMain.getBoundsInParent().getMaxX() > imageView.getBoundsInParent().getMaxX())
-                        && !(rectMain.getBoundsInParent().getMinY() < imageView.getBoundsInParent().getMinY())
-                        && !(rectMain.getBoundsInParent().getMinX() < imageView.getBoundsInParent().getMinX())
-                        ) 
-                {
-                    //TODO: handle rectMain size <= imageView size
-                    if (t.getDeltaY() > 0) {
-                        rectMain.setX(rectMain.getX() - (step / 2));
-                        rectMain.setWidth(rectMain.getWidth() + step);
-                        rectMain.setY(rectMain.getY() - ((step * ratioOldPicture) / 2));
-                        rectMain.setHeight(rectMain.getWidth() * ratioOldPicture);
-                    } else {
-                        rectMain.setX(rectMain.getX() + (step / 2));
-                        rectMain.setWidth(rectMain.getWidth() - step);
-                        rectMain.setY(rectMain.getY() + ((step * ratioOldPicture) / 2));
-                        rectMain.setHeight(rectMain.getWidth() * ratioOldPicture);
+        stackPane.setOnScroll(
+                new EventHandler<ScrollEvent>() {
+                    @Override
+                    public void handle(ScrollEvent t) {
+                        final int step = 10;
+                        //TODO prevent scroll if scroll + step > imageview otherwise it will be over
+                        if (!(rectMain.getBoundsInParent().getMaxY() > imageView.getBoundsInParent().getMaxY())
+                                && !(rectMain.getBoundsInParent().getMaxX() > imageView.getBoundsInParent().getMaxX())
+                                && !(rectMain.getBoundsInParent().getMinY() < imageView.getBoundsInParent().getMinY())
+                                && !(rectMain.getBoundsInParent().getMinX() < imageView.getBoundsInParent().getMinX())) {
+                            //TODO: handle rectMain size <= imageView size
+                            if (t.getDeltaY() > 0) {
+                                rectMain.setX(rectMain.getX() - (step / 2));
+                                rectMain.setWidth(rectMain.getWidth() + step);
+                                rectMain.setY(rectMain.getY() - ((step * ratioOldPicture) / 2));
+                                rectMain.setHeight(rectMain.getWidth() * ratioOldPicture);
+                            } else {
+                                rectMain.setX(rectMain.getX() + (step / 2));
+                                rectMain.setWidth(rectMain.getWidth() - step);
+                                rectMain.setY(rectMain.getY() + ((step * ratioOldPicture) / 2));
+                                rectMain.setHeight(rectMain.getWidth() * ratioOldPicture);
+                            }
+                            updateRecCOlor(rectMain, ratioResize);
+                        }
                     }
-                    updateRecCOlor(rectMain, ratioResize);
-                }
-            }
-        });
+                });
         updateRecCOlor(rectMain, ratioResize);
 
-        rectCenter.setOnMousePressed(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
+        rectCenter.setOnMousePressed(
+                new EventHandler<MouseEvent>() {
+                    @Override
+                    public void handle(MouseEvent event) {
 //                scene.setCursor(Cursor.CLOSED_HAND);
-                dragBaseCX = rectCenter.translateXProperty().get();
-                dragBaseCY = rectCenter.translateYProperty().get();
-                dragBase2CX = event.getSceneX();
-                dragBase2CY = event.getSceneY();
-            }
-        });
+                        dragBaseCX = rectCenter.translateXProperty().get();
+                        dragBaseCY = rectCenter.translateYProperty().get();
+                        dragBase2CX = event.getSceneX();
+                        dragBase2CY = event.getSceneY();
+                    }
+                });
 
-        rectCenter.setOnMouseDragged(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent me) {
-                final double dragWidth = dragBaseCX + (me.getSceneX() - dragBase2CX);
-                final double dragHeight = dragBaseCY + (me.getSceneY() - dragBase2CY);
+        rectCenter.setOnMouseDragged(
+                new EventHandler<MouseEvent>() {
+                    @Override
+                    public void handle(MouseEvent me) {
+                        final double dragWidth = dragBaseCX + (me.getSceneX() - dragBase2CX);
+                        final double dragHeight = dragBaseCY + (me.getSceneY() - dragBase2CY);
 
-                rectCenter.setTranslateX(dragWidth);
-                rectCenter.setTranslateY(dragHeight);
-                rectMain.setTranslateX(dragWidth);
-                rectMain.setTranslateY(dragHeight);
+                        rectCenter.setTranslateX(dragWidth);
+                        rectCenter.setTranslateY(dragHeight);
+                        rectMain.setTranslateX(dragWidth);
+                        rectMain.setTranslateY(dragHeight);
 
-                if (rectMain.getBoundsInParent().getMaxY() > imageView.getBoundsInParent().getMaxY()) {
-                    rectCenter.setTranslateY(dragHeight - (rectMain.getBoundsInParent().getMaxY() - imageView.getBoundsInParent().getMaxY() +1 ));
-                    rectMain.setTranslateY(dragHeight - (rectMain.getBoundsInParent().getMaxY() - imageView.getBoundsInParent().getMaxY() +1 ));
-                }
-                if (rectMain.getBoundsInParent().getMaxX() > imageView.getBoundsInParent().getMaxX()) {
-                    rectCenter.setTranslateX(dragWidth - (rectMain.getBoundsInParent().getMaxX() - imageView.getBoundsInParent().getMaxX() +1 ));
-                    rectMain.setTranslateX(dragWidth - (rectMain.getBoundsInParent().getMaxX() - imageView.getBoundsInParent().getMaxX() +1 ));
-                }
-                if (rectMain.getBoundsInParent().getMinY() < imageView.getBoundsInParent().getMinY()) {
-                    rectCenter.setTranslateY(dragHeight - (rectMain.getBoundsInParent().getMinY() - imageView.getBoundsInParent().getMinY()));
-                    rectMain.setTranslateY(dragHeight - (rectMain.getBoundsInParent().getMinY() - imageView.getBoundsInParent().getMinY()));
-                }
-                if (rectMain.getBoundsInParent().getMinX() < imageView.getBoundsInParent().getMinX()) {
-                    rectCenter.setTranslateX(dragWidth - (rectMain.getBoundsInParent().getMinX() - imageView.getBoundsInParent().getMinX()));
-                    rectMain.setTranslateX(dragWidth - (rectMain.getBoundsInParent().getMinX() - imageView.getBoundsInParent().getMinX()));
-                }
+                        if (rectMain.getBoundsInParent().getMaxY() > imageView.getBoundsInParent().getMaxY()) {
+                            rectCenter.setTranslateY(dragHeight - (rectMain.getBoundsInParent().getMaxY() - imageView.getBoundsInParent().getMaxY() + 1));
+                            rectMain.setTranslateY(dragHeight - (rectMain.getBoundsInParent().getMaxY() - imageView.getBoundsInParent().getMaxY() + 1));
+                        }
+                        if (rectMain.getBoundsInParent().getMaxX() > imageView.getBoundsInParent().getMaxX()) {
+                            rectCenter.setTranslateX(dragWidth - (rectMain.getBoundsInParent().getMaxX() - imageView.getBoundsInParent().getMaxX() + 1));
+                            rectMain.setTranslateX(dragWidth - (rectMain.getBoundsInParent().getMaxX() - imageView.getBoundsInParent().getMaxX() + 1));
+                        }
+                        if (rectMain.getBoundsInParent().getMinY() < imageView.getBoundsInParent().getMinY()) {
+                            rectCenter.setTranslateY(dragHeight - (rectMain.getBoundsInParent().getMinY() - imageView.getBoundsInParent().getMinY()));
+                            rectMain.setTranslateY(dragHeight - (rectMain.getBoundsInParent().getMinY() - imageView.getBoundsInParent().getMinY()));
+                        }
+                        if (rectMain.getBoundsInParent().getMinX() < imageView.getBoundsInParent().getMinX()) {
+                            rectCenter.setTranslateX(dragWidth - (rectMain.getBoundsInParent().getMinX() - imageView.getBoundsInParent().getMinX()));
+                            rectMain.setTranslateX(dragWidth - (rectMain.getBoundsInParent().getMinX() - imageView.getBoundsInParent().getMinX()));
+                        }
 
-            }
-        });
+                    }
+                });
 
     }
 
@@ -271,8 +297,8 @@ public class PhotoRecadre extends Application {
         rectMain.setX(0.0);
         rectMain.setY(0.0);
         //FIXME why need -1 ? because at startup the bound in parents is not equals to the rect's width...
-        rectMain.setWidth(Math.round(image.getWidth()*100)/100 - 2);
-        rectMain.setHeight(Math.round((image.getWidth()-2) * ratioOldPicture*100 )/100);
+        rectMain.setWidth(Math.round(image.getWidth() * 100) / 100 - 2);
+        rectMain.setHeight(Math.round((image.getWidth() - 2) * ratioOldPicture * 100) / 100);
 
         rectCenter.setTranslateX(0.0);
         rectCenter.setTranslateY(0.0);
@@ -307,6 +333,8 @@ public class PhotoRecadre extends Application {
         ratioResize = image.getWidth() / resizedWidth;
         updateRecCOlor(rectMain, ratioResize);
         return workingImage;
+
+
     }
 
     static class ImageCell extends ListCell<String> {
