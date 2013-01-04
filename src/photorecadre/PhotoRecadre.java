@@ -169,25 +169,7 @@ public class PhotoRecadre extends Application {
                     File imageToDelete = new File(new URI(filePath));
                     imageToDelete.delete();
                     final WritableImage snapshot = saveImageView.snapshot(null, null);
-                    final BufferedImage croppedARGBImage = SwingFXUtils.fromFXImage(
-                                                      snapshot, null);
-
-                    BufferedImage imageRGB = new BufferedImage((int)viewportRect.getWidth(), (int)viewportRect.getHeight(), BufferedImage.TYPE_INT_RGB);
-                    Graphics2D g = imageRGB.createGraphics();
-                    //Color.WHITE set the background to white. You can use any other color
-                    g.drawImage(croppedARGBImage, 0, 0, imageRGB.getWidth(), imageRGB.getHeight(), java.awt.Color.WHITE, null);
-                    
-                    Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
-                    ImageWriter writer = (ImageWriter) writers.next();
-                    ImageWriteParam param = writer.getDefaultWriteParam();
-                    ImageOutputStream ios;
-                    try (OutputStream os = new FileOutputStream(new File(new URI(filePath + ".jpg")))) {
-                        ios = ImageIO.createImageOutputStream(os);
-                        writer.setOutput(ios);
-                        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                        param.setCompressionQuality(1.0f);
-                        writer.write(null, new IIOImage(imageRGB, null, null), param);
-                    }
+                    writeToJpgFile(snapshot, filePath);
                     
                     imageMap.remove(filePath);
                     final String newPicFile = filePath + ".jpg";
@@ -198,6 +180,28 @@ public class PhotoRecadre extends Application {
                     logger.log(Level.SEVERE, null, ex);
                 } catch (URISyntaxException ex) {
                     Logger.getLogger(PhotoRecadre.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+
+            private void writeToJpgFile(final WritableImage snapshot, final String filePath) throws IOException, URISyntaxException {
+                final BufferedImage croppedARGBImage = SwingFXUtils.fromFXImage(
+                                                  snapshot, null);
+
+                BufferedImage imageRGB = new BufferedImage((int)snapshot.getWidth(), (int)snapshot.getHeight(), BufferedImage.TYPE_INT_RGB);
+                Graphics2D g = imageRGB.createGraphics();
+                //Color.WHITE set the background to white. You can use any other color
+                g.drawImage(croppedARGBImage, 0, 0, imageRGB.getWidth(), imageRGB.getHeight(), java.awt.Color.WHITE, null);
+                
+                Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
+                ImageWriter writer = (ImageWriter) writers.next();
+                ImageWriteParam param = writer.getDefaultWriteParam();
+                ImageOutputStream ios;
+                try (OutputStream os = new FileOutputStream(new File(new URI(filePath + ".jpg")))) {
+                    ios = ImageIO.createImageOutputStream(os);
+                    writer.setOutput(ios);
+                    param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                    param.setCompressionQuality(1.0f);
+                    writer.write(null, new IIOImage(imageRGB, null, null), param);
                 }
             }
         });
@@ -234,7 +238,6 @@ public class PhotoRecadre extends Application {
                 new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent event) {
-//                scene.setCursor(Cursor.CLOSED_HAND);
                         dragBaseCX = rectCenter.translateXProperty().get();
                         dragBaseCY = rectCenter.translateYProperty().get();
                         dragBase2CX = event.getSceneX();
